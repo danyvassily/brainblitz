@@ -1,0 +1,37 @@
+{
+  "name": "brainblitz",
+  "version": "1.0.0",
+  "description": "Application de quiz et jeux cérébraux",
+  "scripts": {
+    "start:backend": "node backend/server.js",
+    "start:frontend": "node frontend/server.js",
+    "dev:backend": "nodemon backend/server.js",
+    "dev:frontend": "nodemon frontend/server.js",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "webpack",
+    "watch:css": "tailwindcss -i ./frontend/css/styles.css -o ./frontend/css/output.css --watch",
+    "build:css": "tailwindcss -i ./frontend/css/styles.css -o ./frontend/css/output.css"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.3",
+    "socket.io": "^4.8.1",
+    "tr46": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.15",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "nodemon": "^2.0.22",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  },
+  "keywords": [],
+  "author": "Dany Vassiliakos",
+  "license": "ISC"
+}

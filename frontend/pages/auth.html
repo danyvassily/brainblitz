@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainBlitz - Authentification</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div x-data="authState" class="w-full max-w-md">
+        <h1 class="text-4xl font-bold text-center text-blue-600 mb-8">BrainBlitz</h1>
+        
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <!-- Sélecteur de mode -->
+            <div class="flex gap-4 mb-8">
+                <button 
+                    @click="mode = 'login'" 
+                    :class="mode === 'login' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+                    class="flex-1 py-2 px-4 rounded-lg transition-colors">
+                    Connexion
+                </button>
+                <button 
+                    @click="mode = 'register'" 
+                    :class="mode === 'register' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+                    class="flex-1 py-2 px-4 rounded-lg transition-colors">
+                    Inscription
+                </button>
+            </div>
+
+            <!-- Message d'erreur -->
+            <div x-show="errorMessage" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                <p x-text="errorMessage"></p>
+            </div>
+
+            <!-- Formulaire de connexion -->
+            <form x-show="mode === 'login'" @submit.prevent="login" class="space-y-4">
+                <div>
+                    <label for="login-username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
+                    <input 
+                        id="login-username"
+                        type="text" 
+                        x-model="formData.username" 
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <input 
+                        id="login-password"
+                        type="password" 
+                        x-model="formData.password" 
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <button type="submit"
+                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Se connecter
+                </button>
+            </form>
+
+            <!-- Formulaire d'inscription -->
+            <form x-show="mode === 'register'" @submit.prevent="register" class="space-y-4">
+                <div>
+                    <label for="register-username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
+                    <input 
+                        id="register-username"
+                        type="text" 
+                        x-model.trim="formData.username" 
+                        @input="validateForm"
+                        required
+                        minlength="3"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p x-show="formErrors.username" class="mt-1 text-sm text-red-600" x-text="formErrors.username"></p>
+                </div>
+                <div>
+                    <label for="register-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <input 
+                        id="register-password"
+                        type="password" 
+                        x-model.trim="formData.password"
+                        @input="validateForm"
+                        required
+                        minlength="6"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p x-show="formErrors.password" class="mt-1 text-sm text-red-600" x-text="formErrors.password"></p>
+                </div>
+                <button 
+                    type="submit"
+                    :disabled="!isFormValid"
+                    :class="isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
+                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    S'inscrire
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('authState', () => ({
+                mode: 'login',
+                formData: {
+                    username: '',
+                    password: ''
+                },
+                formErrors: {
+                    username: '',
+                    password: ''
+                },
+                errorMessage: '',
+                isFormValid: false,
+
+                validateForm() {
+                    this.formErrors = {
+                        username: '',
+                        password: ''
+                    };
+                    
+                    // Validation du nom d'utilisateur
+                    if (!this.formData.username) {
+                        this.formErrors.username = 'Le nom d\'utilisateur est requis';
+                    } else if (this.formData.username.length < 3) {
+                        this.formErrors.username = 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+                    }
+
+                    // Validation du mot de passe
+                    if (!this.formData.password) {
+                        this.formErrors.password = 'Le mot de passe est requis';
+                    } else if (this.formData.password.length < 6) {
+                        this.formErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+                    }
+
+                    // Vérifier si le formulaire est valide
+                    this.isFormValid = !this.formErrors.username && !this.formErrors.password &&
+                                     this.formData.username.length >= 3 && this.formData.password.length >= 6;
+                    
+                    console.log('Validation du formulaire:', {
+                        username: this.formData.username,
+                        password: this.formData.password ? '****' : '',
+                        errors: this.formErrors,
+                        isValid: this.isFormValid
+                    });
+                },
+
+                async register() {
+                    try {
+                        this.errorMessage = '';
+                        console.log('Tentative d\'inscription avec:', {
+                            username: this.formData.username,
+                            hasPassword: !!this.formData.password
+                        });
+
+                        if (!this.isFormValid) {
+                            throw new Error('Veuillez corriger les erreurs du formulaire');
+                        }
+
+                        const response = await fetch('/api/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: this.formData.username.trim(),
+                                password: this.formData.password.trim()
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.message || 'Erreur lors de l\'inscription');
+                        }
+
+                        const data = await response.json();
+                        console.log('Inscription réussie');
+                        this.handleLoginSuccess(data.token);
+                    } catch (error) {
+                        this.errorMessage = error.message;
+                        console.error('Erreur d\'inscription:', error);
+                    }
+                },
+
+                async login() {
+                    try {
+                        this.errorMessage = '';
+                        console.log('Tentative de connexion avec:', {
+                            username: this.formData.username,
+                            hasPassword: !!this.formData.password
+                        });
+
+                        const response = await fetch('/api/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: this.formData.username.trim(),
+                                password: this.formData.password.trim()
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.message || 'Identifiants invalides');
+                        }
+
+                        const data = await response.json();
+                        console.log('Connexion réussie');
+                        this.handleLoginSuccess(data.token);
+                    } catch (error) {
+                        this.errorMessage = error.message;
+                        console.error('Erreur de connexion:', error);
+                    }
+                },
+
+                handleLoginSuccess(token) {
+                    localStorage.setItem('token', token);
+                    console.log('Token stocké, redirection...');
+                    
+                    const redirectUrl = localStorage.getItem('redirectAfterLogin');
+                    if (redirectUrl && redirectUrl.includes('lobby=')) {
+                        localStorage.removeItem('redirectAfterLogin');
+                        console.log('Redirection vers le lobby:', redirectUrl);
+                        window.location.href = redirectUrl;
+                    } else {
+                        console.log('Redirection vers la sélection du mode');
+                        window.location.href = '/pages/game-mode.html';
+                    }
+                }
+            }));
+        });
+    </script>
+</body>
+</html> 

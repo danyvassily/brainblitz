@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainBlitz - Quiz Game</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Alpine Plugins -->
+    <script defer src="https://unpkg.com/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine Core -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- App -->
+    <script src="/js/app.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="gameState">
+    <!-- Sons du jeu -->
+    <audio id="correctSound" src="/sounds/correct.mp3" preload="auto"></audio>
+    <audio id="incorrectSound" src="/sounds/incorrect.mp3" preload="auto"></audio>
+    <audio id="timeUpSound" src="/sounds/timeup.mp3" preload="auto"></audio>
+    <audio id="gameOverSound" src="/sounds/gameover.mp3" preload="auto"></audio>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Barre de navigation -->
+        <nav class="flex justify-between items-center mb-8">
+            <!-- Logo et titre -->
+            <div class="flex items-center space-x-4">
+                <h1 class="text-4xl font-bold text-blue-600">BrainBlitz</h1>
+            </div>
+            
+            <!-- Boutons de navigation (visibles seulement si connecté) -->
+            <div x-show="token" class="flex space-x-4">
+                <button @click="selectedCategory = null; isPlaying = false" 
+                    class="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-home"></i>
+                    <span>Accueil</span>
+                </button>
+                <button @click="logout" 
+                    class="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Se déconnecter</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Formulaire de connexion/inscription -->
+        <template x-if="!token">
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow p-6 space-y-4">
+                <h2 class="text-2xl font-semibold text-center" x-text="showRegister ? 'Inscription' : 'Connexion'"></h2>
+                <form @submit.prevent="showRegister ? register() : login()" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-user text-gray-400 mr-2"></i>
+                            Nom d'utilisateur
+                        </label>
+                        <input type="text" x-model="username" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-lock text-gray-400 mr-2"></i>
+                            Mot de passe
+                        </label>
+                        <input type="password" x-model="password" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        <span x-text="showRegister ? 'S\'inscrire' : 'Se connecter'"></span>
+                    </button>
+                </form>
+                <p class="text-center text-sm">
+                    <a href="#" @click.prevent="showRegister = !showRegister" class="text-blue-600 hover:underline">
+                        <i x-show="!showRegister" class="fas fa-user-plus mr-1"></i>
+                        <i x-show="showRegister" class="fas fa-sign-in-alt mr-1"></i>
+                        <span x-text="showRegister ? 'Déjà inscrit ? Connectez-vous' : 'Pas encore inscrit ? Créez un compte'"></span>
+                    </a>
+                </p>
+            </div>
+        </template>
+
+        <!-- Interface de jeu -->
+        <template x-if="token">
+            <div class="max-w-2xl mx-auto">
+                <!-- Sélection de catégorie -->
+                <template x-if="!selectedCategory && !isPlaying">
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold text-center mb-6">
+                            <i class="fas fa-list-alt mr-2"></i>
+                            Choisissez votre catégorie
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="category in categories" :key="category.id">
+                                <button @click="selectCategory(category.id)"
+                                    class="p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                    <h3 class="text-lg font-semibold">
+                                        <i class="fas fa-folder mr-2"></i>
+                                        <span x-text="category.name"></span>
+                                    </h3>
+                                    <p class="text-gray-600 text-sm mt-2" x-text="category.description"></p>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Configuration de la partie -->
+                <template x-if="selectedCategory && !isPlaying">
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between">
+                            <button @click="selectedCategory = null" 
+                                class="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Retour aux catégories
+                            </button>
+                        </div>
+                        
+                        <h2 class="text-2xl font-bold text-center mb-6">
+                            <i class="fas fa-cog mr-2"></i>
+                            Configuration de la partie
+                        </h2>
+                        <div class="bg-white rounded-lg shadow-sm p-6">
+                            <p class="text-lg mb-4">
+                                <i class="fas fa-folder-open mr-2"></i>
+                                Catégorie sélectionnée : <span class="font-semibold" x-text="selectedCategoryName"></span>
+                            </p>
+                            <div class="space-y-4">
+                                <button @click="startGame('solo')"
+                                    class="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                                    <i class="fas fa-user mr-2"></i>
+                                    Mode Solo
+                                </button>
+                                <button @click="startGame('multi')"
+                                    class="w-full p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
+                                    <i class="fas fa-users mr-2"></i>
+                                    Mode Multijoueur
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Zone de jeu -->
+                <template x-if="isPlaying">
+                    <div class="space-y-6">
+                        <!-- Bouton retour -->
+                        <div class="flex items-center justify-between mb-4">
+                            <button @click="if(confirm('Voulez-vous vraiment quitter la partie ?')) { selectedCategory = null; isPlaying = false; }" 
+                                class="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>
+                                Quitter la partie
+                            </button>
+                        </div>
+
+                        <!-- Informations de la partie -->
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-lg font-semibold">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                Score: <span x-text="score"></span>
+                            </div>
+                            <div class="text-lg">
+                                <i class="fas fa-question-circle text-blue-500 mr-2"></i>
+                                Question <span x-text="currentLevel"></span>
+                            </div>
+                            <div class="text-lg">
+                                <i class="fas fa-clock text-green-500 mr-2"></i>
+                                Temps: <span x-text="formatTime(timeLeft)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Conteneur de la question -->
+                        <div id="game-container" class="bg-white rounded-lg shadow-sm p-6">
+                            <!-- Le contenu sera généré dynamiquement -->
+                        </div>
+
+                        <!-- Feedback -->
+                        <div x-show="showFeedback" x-transition
+                            :class="feedbackClass"
+                            class="p-4 rounded-lg text-center">
+                            <p x-text="feedbackMessage"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+</body>
+</html> 

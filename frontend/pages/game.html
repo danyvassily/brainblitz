@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainBlitz - Quiz</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        .quiz-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            z-index: 1000;
+        }
+        .quiz-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .quiz-info-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <!-- Éléments audio pour les sons -->
+    <audio id="correctSound" preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=correct-6033.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="incorrectSound" preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_12b0c7443c.mp3?filename=wrong-47985.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="timeUpSound" preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3?filename=clock-alarm-8761.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="gameOverSound" preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c5303c2423.mp3?filename=success-1-6297.mp3" type="audio/mpeg">
+    </audio>
+
+    <div x-data="gameState" class="w-full max-w-2xl">
+        <!-- Section d'informations du quiz -->
+        <div x-show="isPlaying" class="quiz-info">
+            <div class="quiz-info-item">
+                <span class="quiz-info-icon">📊</span>
+                <span>Question: <span x-text="currentLevel"></span>/5</span>
+            </div>
+            <template x-if="gameMode === 'duo'">
+                <div class="space-y-2 border-t border-gray-200 mt-2 pt-2">
+                    <template x-for="player in players" :key="player.username">
+                        <div class="quiz-info-item">
+                            <span class="quiz-info-icon" x-text="player.username === currentPlayer ? '👉' : ''"></span>
+                            <span x-text="player.username"></span>
+                            <span class="ml-auto font-bold" x-text="player.score"></span>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template x-if="gameMode === 'solo'">
+                <div class="quiz-info-item">
+                    <span class="quiz-info-icon">⭐</span>
+                    <span>Score: <span x-text="score"></span></span>
+                </div>
+            </template>
+            <div class="quiz-info-item">
+                <span class="quiz-info-icon">⏱️</span>
+                <span>Temps: <span x-text="formatTime(timeLeft)"></span></span>
+            </div>
+        </div>
+
+        <h1 class="text-4xl font-bold text-center text-blue-600 mb-8">BrainBlitz</h1>
+        
+        <!-- Container principal -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <!-- Zone d'attente pour le mode duo -->
+            <div x-show="gameMode === 'duo' && !isPlaying" class="text-center space-y-6">
+                <h2 class="text-2xl font-semibold mb-4">Mode Deux Joueurs</h2>
+                
+                <!-- Bouton pour afficher la section de partage -->
+                <button 
+                    @click="showShareSection = !showShareSection"
+                    class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                    <span>🔗</span>
+                    <span x-text="showShareSection ? 'Masquer le lien de partage' : 'Afficher le lien de partage'"></span>
+                </button>
+
+                <!-- Section de partage de lien -->
+                <div x-show="showShareSection" x-transition class="bg-gray-50 p-6 rounded-lg shadow-md space-y-4">
+                    <h3 class="text-lg font-medium text-gray-800">Inviter un adversaire</h3>
+                    <div class="space-y-2">
+                        <label for="gameLink" class="block text-sm font-medium text-gray-600">
+                            Lien de la partie :
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input 
+                                type="text" 
+                                id="gameLink"
+                                :value="window.location.origin + '/pages/game.html?lobby=' + joinLink"
+                                readonly 
+                                class="flex-1 p-3 border rounded-lg bg-white text-gray-800 font-mono text-sm"
+                                aria-label="Lien de partage pour rejoindre la partie"
+                            />
+                            <button 
+                                @click="copyJoinLink()" 
+                                class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <span>📋</span>
+                                <span>Copier</span>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">
+                            Partagez ce lien avec votre adversaire pour qu'il puisse rejoindre la partie
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Liste des joueurs -->
+                <div class="mt-6 p-4 bg-white rounded-lg shadow-sm">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Joueurs connectés</h3>
+                    <div class="space-y-3">
+                        <template x-for="player in players" :key="player.username">
+                            <div class="flex items-center justify-center space-x-2 p-2 bg-green-50 rounded-lg">
+                                <span class="text-green-500">✓</span>
+                                <span class="text-gray-800" x-text="player.username"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="players.length < 2" class="mt-4 text-gray-600">
+                        En attente d'un autre joueur...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone de jeu -->
+            <div id="game-container" class="space-y-6">
+                <!-- Le contenu du jeu sera injecté ici dynamiquement -->
+            </div>
+
+            <!-- Feedback -->
+            <div x-show="showFeedback" :class="feedbackClass" class="mt-4 p-4 rounded-lg">
+                <p class="font-medium" x-text="feedbackMessage"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('gameState', () => ({
+                score: 0,
+                currentLevel: 1,
+                isPlaying: false,
+                currentQuestion: null,
+                showFeedback: false,
+                feedbackMessage: "",
+                feedbackClass: "",
+                socket: null,
+                timeLeft: 0,
+                gameMode: localStorage.getItem('gameMode'),
+                players: [],
+                currentPlayer: null,
+                joinLink: null,
+                showShareSection: false,
+
+                init() {
+                    // Vérifier l'authentification
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        // Sauvegarder l'URL actuelle pour rediriger après la connexion
+                        const currentUrl = window.location.href;
+                        localStorage.setItem('redirectAfterLogin', currentUrl);
+                        window.location.href = '/pages/auth.html';
+                        return;
+                    }
+
+                    // Vérifier s'il y a un lien de partie dans l'URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const lobbyId = urlParams.get('lobby');
+                    
+                    this.initializeSocket();
+                    
+                    if (lobbyId) {
+                        // Mode rejoindre une partie existante
+                        console.log("Tentative de rejoindre la partie:", lobbyId);
+                        this.gameMode = 'duo'; // Forcer le mode duo
+                        localStorage.setItem('gameMode', 'duo');
+                        this.socket.emit('join_lobby', lobbyId);
+                    } else if (this.gameMode === 'duo') {
+                        // Créer une nouvelle partie
+                        console.log("Création d'une nouvelle partie en mode duo");
+                        this.socket.emit('create_lobby', this.gameMode);
+                    } else {
+                        this.startGame();
+                    }
+                },
+
+                copyJoinLink() {
+                    const gameUrl = `${window.location.origin}/pages/game.html?lobby=${this.joinLink}`;
+                    navigator.clipboard.writeText(gameUrl).then(() => {
+                        // Ajouter un retour visuel
+                        const copyButton = document.querySelector('[x-text="Copier"]');
+                        if (copyButton) {
+                            const originalText = copyButton.textContent;
+                            copyButton.textContent = 'Copié !';
+                            setTimeout(() => {
+                                copyButton.textContent = originalText;
+                            }, 2000);
+                        }
+                    }).catch(err => {
+                        console.error('Erreur lors de la copie :', err);
+                        alert('Erreur lors de la copie du lien');
+                    });
+                },
+
+                initializeSocket() {
+                    this.socket = io("http://localhost:3000", {
+                        auth: {
+                            token: localStorage.getItem('token')
+                        }
+                    });
+
+                    this.setupSocketListeners();
+                },
+
+                setupSocketListeners() {
+                    this.socket.on("connect", () => {
+                        console.log("✅ Connecté au serveur Socket.IO");
+                    });
+
+                    this.socket.on("connect_error", (error) => {
+                        console.error("❌ Erreur de connexion:", error);
+                        if (error.message === "Authentication error") {
+                            window.location.href = '/pages/auth.html';
+                        }
+                    });
+
+                    // Réception des questions
+                    this.socket.on("question", (data) => {
+                        console.log("❓ Question reçue:", data);
+                        this.currentQuestion = {
+                            ...data,
+                            startTime: Date.now()
+                        };
+                        this.currentLevel = data.questionNumber;
+                        this.timeLeft = data.timeLeft;
+                        this.showFeedback = false;
+
+                        // Mettre à jour l'interface avec la nouvelle question
+                        const gameContainer = document.getElementById("game-container");
+                        if (gameContainer) {
+                            gameContainer.innerHTML = this.generateQuestionHTML(data);
+                            this.attachAnswerListeners();
+                        }
+                    });
+
+                    // Résultat de la réponse
+                    this.socket.on("answer_result", (data) => {
+                        console.log("📝 Résultat:", data);
+                        this.showFeedback = true;
+                        
+                        if (this.gameMode === 'duo') {
+                            if (this.currentPlayer === 1) {
+                                this.player1Score += data.correct ? 1 : 0;
+                            } else {
+                                this.player2Score += data.correct ? 1 : 0;
+                            }
+                            this.score = this.player1Score + this.player2Score;
+                        } else {
+                            this.score = data.score;
+                        }
+
+                        if (data.correct) {
+                            this.feedbackMessage = "Bonne réponse !";
+                            this.feedbackClass = "bg-green-50 text-green-600";
+                            this.playSoundEffect("correctSound");
+                        } else {
+                            this.feedbackMessage = `Incorrect. La bonne réponse était : ${data.correctAnswer}`;
+                            this.feedbackClass = "bg-red-50 text-red-600";
+                            this.playSoundEffect("incorrectSound");
+                        }
+                    });
+
+                    // Mise à jour du temps
+                    this.socket.on("time_update", (data) => {
+                        this.timeLeft = data.timeLeft;
+                        if (data.timeLeft <= 5000) {
+                            this.playSoundEffect("timeUpSound");
+                        }
+                    });
+
+                    // Fin du jeu
+                    this.socket.on("game_over", (data) => {
+                        console.log("🏁 Fin du jeu:", data);
+                        this.isPlaying = false;
+                        this.playSoundEffect("gameOverSound");
+                        const gameContainer = document.getElementById("game-container");
+                        if (gameContainer) {
+                            gameContainer.innerHTML = this.generateGameOverHTML(data);
+                        }
+                    });
+
+                    // Événements multijoueur
+                    this.socket.on('lobby_created', (data) => {
+                        this.players = data.players.map(username => ({ username, score: 0 }));
+                        this.joinLink = data.joinLink;
+                    });
+
+                    this.socket.on('lobby_updated', (data) => {
+                        console.log("Mise à jour du lobby:", data);
+                        this.players = data.players.map(username => ({ username, score: 0 }));
+                        if (data.status === 'ready') {
+                            console.log("La partie peut commencer !");
+                            this.isPlaying = true;
+                        }
+                    });
+
+                    this.socket.on('lobby_error', (error) => {
+                        console.error("Erreur de lobby:", error);
+                        alert(error.message);
+                        // Rediriger vers la sélection du mode si erreur
+                        window.location.href = '/pages/game-mode.html';
+                    });
+
+                    this.socket.on('game_starting', (data) => {
+                        this.players = data.players;
+                        this.isPlaying = true;
+                    });
+
+                    this.socket.on('next_turn', (data) => {
+                        this.currentPlayer = data.nextPlayer;
+                    });
+
+                    this.socket.on('answer_result', (data) => {
+                        this.showFeedback = true;
+                        if (data.scores) {
+                            this.players = data.scores;
+                        }
+                        
+                        if (data.correct) {
+                            this.feedbackMessage = "Bonne réponse !";
+                            this.feedbackClass = "bg-green-50 text-green-600";
+                            this.playSoundEffect("correctSound");
+                        } else {
+                            this.feedbackMessage = `Incorrect. La bonne réponse était : ${data.correctAnswer}`;
+                            this.feedbackClass = "bg-red-50 text-red-600";
+                            this.playSoundEffect("incorrectSound");
+                        }
+                    });
+                },
+
+                generateQuestionHTML(data) {
+                    return `
+                        <div class="space-y-6">
+                            <h2 class="text-xl font-semibold text-slate-800">${data.question}</h2>
+                            <div class="space-y-3">
+                                ${data.choices.map((choice, index) => `
+                                    <button 
+                                        type="button"
+                                        data-choice="${choice}"
+                                        class="w-full p-4 text-left bg-white border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                                        ${choice}
+                                    </button>
+                                `).join("")}
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateGameOverHTML(data) {
+                    const totalTime = Date.now() - this.currentQuestion?.startTime || 0;
+                    const minutes = Math.floor(totalTime / 60000);
+                    const seconds = Math.floor((totalTime % 60000) / 1000);
+
+                    let scoreDisplay = '';
+                    if (this.gameMode === 'duo') {
+                        scoreDisplay = `
+                            <div class="space-y-2">
+                                <p class="text-blue-600">Joueur 1: ${this.player1Score} points</p>
+                                <p class="text-green-600">Joueur 2: ${this.player2Score} points</p>
+                                <p class="text-xl font-bold mt-4">Score total: ${this.score}/${data.totalQuestions * 2}</p>
+                            </div>
+                        `;
+                    } else {
+                        scoreDisplay = `
+                            <p class="text-green-600">
+                                ✅ Score final : <span class="font-bold">${data.score}/${data.totalQuestions}</span>
+                            </p>
+                        `;
+                    }
+
+                    return `
+                        <div class="text-center space-y-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Quiz terminé !</h2>
+                            
+                            <div class="bg-white p-6 rounded-lg shadow-sm space-y-4">
+                                <div class="text-lg">
+                                    <p class="font-semibold text-xl mb-2">Résultats :</p>
+                                    ${scoreDisplay}
+                                    <p class="text-blue-600">
+                                        ⏱️ Temps total : <span class="font-bold">${minutes}min ${seconds}s</span>
+                                    </p>
+                                    <p class="text-slate-600 mt-2">
+                                        ${Math.round((data.score / data.totalQuestions) * 100)}% de bonnes réponses
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 mt-6">
+                                <button 
+                                    type="button"
+                                    onclick="window.location.reload()"
+                                    class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    🔄 Rejouer ce quiz
+                                </button>
+                                <button 
+                                    type="button"
+                                    onclick="window.location.href = '/pages/game-mode.html'"
+                                    class="w-full px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                    📚 Choisir une autre catégorie
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                attachAnswerListeners() {
+                    const buttons = document.querySelectorAll("[data-choice]");
+                    buttons.forEach((button) => {
+                        button.addEventListener("click", () => {
+                            const choice = button.getAttribute("data-choice");
+                            this.submitAnswer(choice);
+                        });
+                    });
+                },
+
+                startGame() {
+                    const category = localStorage.getItem('category');
+                    if (!category) {
+                        window.location.href = '/pages/game-mode.html';
+                        return;
+                    }
+
+                    this.socket.emit('select_category', category);
+                    this.socket.emit('start_game', {
+                        mode: this.gameMode
+                    });
+                },
+
+                submitAnswer(answer) {
+                    this.socket.emit('submit_answer', answer);
+                    if (this.gameMode === 'duo') {
+                        this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                    }
+                },
+
+                playSoundEffect(soundId) {
+                    const sound = document.getElementById(soundId);
+                    if (sound) {
+                        sound.currentTime = 0;
+                        sound.volume = 0.5;
+                        sound.play().catch(e => console.warn('Erreur de lecture du son:', e));
+                    }
+                },
+
+                formatTime(ms) {
+                    if (!ms) return "0:00";
+                    const minutes = Math.floor(ms / 60000);
+                    const seconds = Math.floor((ms % 60000) / 1000);
+                    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+                },
+
+                returnToModeSelection() {
+                    window.location.href = '/pages/game-mode.html';
+                }
+            }));
+        });
+    </script>
+</body>
+</html> 

@@ -6,6 +6,39 @@ const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
+// Route pour l'authentification Firebase
+router.post("/auth/firebase", async (req, res) => {
+  try {
+    const { firebaseUid, email, username } = req.body;
+
+    // Rechercher l'utilisateur par firebaseUid
+    let user = await User.findOne({ firebaseUid });
+
+    if (!user) {
+      // Créer un nouvel utilisateur si n'existe pas
+      user = new User({
+        username,
+        email,
+        firebaseUid,
+        password: Math.random().toString(36).slice(-8), // Mot de passe aléatoire
+      });
+      await user.save();
+    }
+
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      config.JWT_SECRET,
+      { expiresIn: config.JWT_EXPIRES_IN }
+    );
+
+    res.json({ token });
+  } catch (error) {
+    console.error("❌ Erreur d'authentification Firebase:", error);
+    res.status(500).json({ message: "Erreur lors de l'authentification" });
+  }
+});
+
 // Route d'inscription
 router.post("/register", async (req, res) => {
   try {

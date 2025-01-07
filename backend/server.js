@@ -21,7 +21,7 @@ const httpServer = createServer(app);
 
 // Configuration de CORS
 const corsOptions = {
-  origin: "http://localhost:3000", // Frontend URL
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
   methods: ["GET", "POST"],
   credentials: true,
 };
@@ -31,13 +31,15 @@ app.use(cors(corsOptions));
 // Configuration de Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
-    transports: ["websocket"],
   },
+  transports: ["websocket", "polling"],
   pingTimeout: 60000,
+  pingInterval: 25000,
   connectTimeout: 60000,
+  allowEIO3: true,
 });
 
 // Middleware
@@ -49,6 +51,55 @@ app.use((req, res, next) => {
 
 // Routes API
 app.use("/api", authRoutes);
+
+// Route pour récupérer les catégories
+app.get("/api/categories", (req, res) => {
+  const quizCategories = require("./data/quizCategories");
+  const categories = Object.keys(quizCategories).map((key) => ({
+    id: key,
+    ...quizCategories[key],
+  }));
+  res.json(categories);
+});
+
+// Route pour démarrer une partie
+app.post("/api/game/start", async (req, res) => {
+  try {
+    const { gameMode, category } = req.body;
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Token manquant" });
+    }
+
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // Créer un ID unique pour la partie
+    const gameId = `${gameMode}_${user.username}_${Date.now()}`;
+
+    // Initialiser la partie dans le contrôleur de jeu
+    const game = gameController.createLobby(
+      { username: user.username },
+      gameMode
+    );
+    gameController.startGame(
+      io,
+      { username: user.username },
+      category,
+      gameMode
+    );
+
+    res.json({ id: gameId });
+  } catch (error) {
+    console.error("❌ Erreur lors du démarrage du jeu:", error);
+    res.status(500).json({ message: "Erreur lors du démarrage du jeu" });
+  }
+});
 
 // Socket.IO Middleware
 io.use(async (socket, next) => {
@@ -144,16 +195,16 @@ io.on("connection", (socket) => {
 });
 
 // Connexion à la base de données et démarrage du serveur
-const PORT = process.env.BACKEND_PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 connectDB()
   .then(() => {
     httpServer.listen(PORT, () => {
       console.log(`
-        🎮 Serveur Backend BrainBlitz démarré
-        📡 Port: ${PORT}
-        🌐 URL: http://localhost:${PORT}
-        `);
+🌐 Serveur Backend démarré
+📡 Port: ${PORT}
+🔗 URL: http://localhost:${PORT}
+      `);
     });
   })
   .catch((err) => {

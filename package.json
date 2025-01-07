@@ -4,19 +4,22 @@
   "description": "Application de quiz et jeux cérébraux",
   "scripts": {
     "start:backend": "node backend/server.js",
-    "start:frontend": "node frontend/server.js",
+    "start:frontend": "cd frontend-react && npm run dev",
     "dev:backend": "nodemon backend/server.js",
-    "dev:frontend": "nodemon frontend/server.js",
+    "dev:frontend": "cd frontend-react && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "webpack",
-    "watch:css": "tailwindcss -i ./frontend/css/styles.css -o ./frontend/css/output.css --watch",
-    "build:css": "tailwindcss -i ./frontend/css/styles.css -o ./frontend/css/output.css"
+    "build": "cd frontend-react && npm run build",
+    "watch:css": "cd frontend-react && npm run dev",
+    "build:css": "cd frontend-react && npm run build"
   },
   "dependencies": {
+    "@firebase/auth": "^1.8.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase": "^11.1.0",
+    "firebase-admin": "^13.0.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
     "socket.io": "^4.8.1",

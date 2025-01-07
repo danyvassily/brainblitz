@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    --text-50: #f4e6fe;
+    --text-100: #e9cefd;
+    --text-200: #d49cfc;
+    --text-300: #be6bfa;
+    --text-400: #a939f9;
+    --text-500: #9308f7;
+    --text-600: #7606c6;
+    --text-700: #580594;
+    --text-800: #3b0363;
+    --text-900: #1d0231;
+    --text-950: #0f0119;
+    
+    --background-50: #f5e5ff;
+    --background-100: #ebccff;
+    --background-200: #d699ff;
+    --background-300: #c266ff;
+    --background-400: #ad33ff;
+    --background-500: #9900ff;
+    --background-600: #7a00cc;
+    --background-700: #5c0099;
+    --background-800: #3d0066;
+    --background-900: #1f0033;
+    --background-950: #0f001a;
+    
+    --primary-50: #f4e7fe;
+    --primary-100: #e9cefd;
+    --primary-200: #d49efa;
+    --primary-300: #be6df8;
+    --primary-400: #a83cf6;
+    --primary-500: #930bf4;
+    --primary-600: #7509c3;
+    --primary-700: #580792;
+    --primary-800: #3b0561;
+    --primary-900: #1d0231;
+    --primary-950: #0f0118;
+    
+    --secondary-50: #feebe7;
+    --secondary-100: #fdd7ce;
+    --secondary-200: #faaf9e;
+    --secondary-300: #f8866d;
+    --secondary-400: #f65e3c;
+    --secondary-500: #f4360b;
+    --secondary-600: #c32b09;
+    --secondary-700: #922007;
+    --secondary-800: #611605;
+    --secondary-900: #310b02;
+    --secondary-950: #180501;
+    
+    --accent-50: #fef8e7;
+    --accent-100: #fdf1ce;
+    --accent-200: #fae39e;
+    --accent-300: #f8d56d;
+    --accent-400: #f6c73c;
+    --accent-500: #f4ba0b;
+    --accent-600: #c39409;
+    --accent-700: #926f07;
+    --accent-800: #614a05;
+    --accent-900: #312502;
+    --accent-950: #181301;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    --text-50: #0f0119;
+    --text-100: #1d0231;
+    --text-200: #3b0363;
+    --text-300: #580594;
+    --text-400: #7606c6;
+    --text-500: #9308f7;
+    --text-600: #a939f9;
+    --text-700: #be6bfa;
+    --text-800: #d49cfc;
+    --text-900: #e9cefd;
+    --text-950: #f4e6fe;
+    
+    --background-50: #0f001a;
+    --background-100: #1f0033;
+    --background-200: #3d0066;
+    --background-300: #5c0099;
+    --background-400: #7a00cc;
+    --background-500: #9900ff;
+    --background-600: #ad33ff;
+    --background-700: #c266ff;
+    --background-800: #d699ff;
+    --background-900: #ebccff;
+    --background-950: #f5e5ff;
+    
+    --primary-50: #0f0118;
+    --primary-100: #1d0231;
+    --primary-200: #3b0561;
+    --primary-300: #580792;
+    --primary-400: #7509c3;
+    --primary-500: #930bf4;
+    --primary-600: #a83cf6;
+    --primary-700: #be6df8;
+    --primary-800: #d49efa;
+    --primary-900: #e9cefd;
+    --primary-950: #f4e7fe;
+    
+    --secondary-50: #180501;
+    --secondary-100: #310b02;
+    --secondary-200: #611605;
+    --secondary-300: #922007;
+    --secondary-400: #c32b09;
+    --secondary-500: #f4360b;
+    --secondary-600: #f65e3c;
+    --secondary-700: #f8866d;
+    --secondary-800: #faaf9e;
+    --secondary-900: #fdd7ce;
+    --secondary-950: #feebe7;
+    
+    --accent-50: #181301;
+    --accent-100: #312502;
+    --accent-200: #614a05;
+    --accent-300: #926f07;
+    --accent-400: #c39409;
+    --accent-500: #f4ba0b;
+    --accent-600: #f6c73c;
+    --accent-700: #f8d56d;
+    --accent-800: #fae39e;
+    --accent-900: #fdf1ce;
+    --accent-950: #fef8e7;
+  }
+}
+
+@layer components {
+  .feature-card {
+    @apply relative overflow-hidden rounded-xl p-8 bg-background-50
+           border border-background-200 shadow-lg hover:shadow-xl transition-all duration-300
+           hover:scale-[1.02] cursor-pointer backdrop-blur;
+  }
+
+  .feature-card-title {
+    @apply text-2xl font-bold mb-2 text-primary-600;
+  }
+
+  .feature-card-description {
+    @apply text-foreground text-lg;
+  }
+
+  .feature-card-icon {
+    @apply text-4xl mb-4 text-accent-500;
+  }
+
+  .play-button {
+    @apply px-8 py-3 bg-primary-500 text-white font-bold rounded-full
+           hover:bg-primary-600 transform hover:scale-105 transition-all duration-300
+           shadow-lg hover:shadow-xl text-lg;
+  }
+}

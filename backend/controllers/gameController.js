@@ -62,6 +62,9 @@ class GameController {
     const lobby = this.lobbies.get(lobbyId);
     if (!lobby) {
       console.error("❌ Lobby non trouvé:", lobbyId);
+      socket.emit("game_error", {
+        message: "Erreur lors de la création du lobby",
+      });
       return;
     }
 
@@ -80,6 +83,14 @@ class GameController {
     lobby.status = "playing";
     lobby.startTime = Date.now();
     lobby.currentQuestion = 0;
+
+    // Émettre l'événement game_started
+    socket.emit("game_started", {
+      id: lobbyId,
+      category: category,
+      mode: mode,
+      totalQuestions: categoryData.questions.length,
+    });
 
     console.log("🎯 Envoi de la première question...");
 

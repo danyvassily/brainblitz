@@ -9,8 +9,9 @@ import { useToast } from "../hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TOTAL_QUESTIONS = 10; // Nombre fixe de questions par partie
-const TOTAL_TIME = 180000; // 3 minutes en millisecondes
-const TIME_PER_QUESTION = TOTAL_TIME / TOTAL_QUESTIONS; // Temps par question
+const TIME_PER_QUESTION = 30000; // 30 secondes par question
+const TOTAL_TIME = TIME_PER_QUESTION * TOTAL_QUESTIONS; // Temps total basé sur le nombre de questions
+const ANSWER_DISPLAY_TIME = 3000; // 3 secondes pour afficher la réponse
 
 // Fonction de mélange de Fisher-Yates
 const shuffleArray = (array) => {
@@ -68,10 +69,10 @@ export default function Game() {
           timeUp: remainingTime <= 0
         }
       });
-    }, 2000);
+    }, ANSWER_DISPLAY_TIME);
   }, [navigate, score, location.state, remainingTime, isGameOver]);
 
-  // Timer global de 3 minutes
+  // Timer global
   useEffect(() => {
     if (questions.length === 0 || isGameOver) return;
 
@@ -122,7 +123,7 @@ export default function Game() {
     if (currentQuestionIndex === questions.length - 1) {
       endGame();
     } else {
-      setTimeout(nextQuestion, 2000);
+      setTimeout(nextQuestion, ANSWER_DISPLAY_TIME);
     }
   };
 
@@ -139,7 +140,7 @@ export default function Game() {
       if (currentQuestionIndex === questions.length - 1) {
         endGame();
       } else {
-        setTimeout(nextQuestion, 2000);
+        setTimeout(nextQuestion, ANSWER_DISPLAY_TIME);
       }
     }
   };
@@ -182,7 +183,7 @@ export default function Game() {
             </h2>
             <div className="text-lg font-medium space-x-4">
               <span>Score: {score}/{TOTAL_QUESTIONS}</span>
-              <span className={`${remainingTime <= 30000 ? 'text-red-500' : 'text-primary'}`}>
+              <span className={`${remainingTime <= 60000 ? 'text-red-500' : 'text-primary'}`}>
                 Temps: {minutes}:{seconds.toString().padStart(2, '0')}
               </span>
             </div>

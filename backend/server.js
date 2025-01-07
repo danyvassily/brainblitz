@@ -201,13 +201,16 @@ connectDB()
   .then(() => {
     httpServer.listen(PORT, () => {
       console.log(`
-🌐 Serveur Backend démarré
-📡 Port: ${PORT}
-🔗 URL: http://localhost:${PORT}
+🌐 Serveur BrainBlitz démarré avec succès
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Port d'écoute : ${PORT}
+🔗 URL locale : http://localhost:${PORT}
+🌐 Frontend URL : ${process.env.FRONTEND_URL || "http://localhost:3000"}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
     });
   })
   .catch((err) => {
-    console.error("❌ Erreur de démarrage du serveur:", err);
+    console.error("❌ Erreur fatale lors du démarrage du serveur:", err);
     process.exit(1);
   });
